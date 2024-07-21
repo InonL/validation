@@ -12,3 +12,6 @@ It's not clear to me what should be the correct way to do this. I can load lots 
 
 #### What to focus on - Physical validation or functional?
 I am not sure if I should include physical measurements such as power, temperature, execution time, etc.
+
+#### How involved should I be in the boot sequence?
+The RP2040 for example uses a boot loop which defaults to USB boot if not supplied with an XIP peripheral... How is this handled here?
