@@ -19,14 +19,18 @@ And lastly, the Host PC - It is connected to the PCB and all test equipment usin
 ### Setup Diagram
 
 ![](setup_schematic.svg)
-The PC uses the UART connection on the board to communicate with the different components on the board. The UART Controller connected to the UART Bus decodes the messages sent from the host PC and routes them accordingly using a demultiplexer.
-
+The PC uses serial connections to communicate with the test equipment, and with the test PCB. The UART connection on the PCB is connected to a UART Controller on the board, which decodes the messages sent from the host PC and routes them to different components on the board using a demultiplexer.
 ### Python Test Environment
 The Host PC runs the test and controls the test equipment using a Python code environment.
 The environment includes elements such as:
-- Test pattern generator - generates random operands, and writes them as instructions for loading onto the EEPROM 
-- SerialDevice class - base class for all serial devices
-- Specific device classes - every device connected via serial has it's own unique class, which inherits from the SerialDevice base class. Every device class implements methods in a way compatible with the device, such as: Transmit/Receive methods, 
+- Test pattern generator - generates random operands, converts them to binary instructions for loading onto the EEPROM, and stores them in a file. Should also generate reference results to compare with the actual test results
+- SerialDevice class - base class for all serial devices, which takes serial connection parameters such as baud rate, COM port, etc.
+- Specific serial device classes - every unique device class inherits from the base SerialDevice class, and implements device-specific methods. For example - The power supply class will implement a method to set voltage/current values, the Oscilloscope class will implement methods to set trigger values, and so on
+- TestBoard class - also inherits from SerialDevice, but this class is unique because it's used to communicate with several different components on the test board. It should have the following methods:
+	- Component select - When calling this method, the UART controller on the board changes the selection lines on the demultiplexer according to the desired component
+	- JTAG debugging methods - methods used to communicate with DUT via JTAG, including a method to encode JTAG instructions in UART messages, parse JTAG messages received from DUT, and save them to a file in-order
+	- SPI methods - similar to the JTAG methods, a method is needed to encode UART messages to SPI messages compatible with the EEPROM
+	- Power-on Reset - a method to toggle the power-on reset component
 
 The test procedure control flow is as follows:
 ![](control_flow.svg)
