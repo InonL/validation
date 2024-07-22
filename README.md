@@ -1,5 +1,25 @@
 # Test Setup
-We need to make the DUT run a test routine (or test pattern), read the results back, check that they are correct, and measure performance metrics such as execution time, power consumption, and temperature values. This involves a couple of steps.
+This document describes an automated validation test setup for a generic chip with an embedded processor in it. The test involves sending a routine (or test pattern) to the DUT using a host PC, running the test on the DUT in real time while measuring performance, reading the results back from the DUT, and finally parsing and analyzing the results. 
+
+The chip is connected to a PCB which provides all necessary inputs to the DUT:
+- Voltage 
+- Clock input
+- Power-on reset
+- Serial interface
+- Peripheral EEPROM (connected via SPI) to load the test instructions (as the chip doesn't have internal memory)
+
+In addition, the following test equipment is used:
+- Voltage meter - to watch for voltage spikes or changes which can affect the chip's performance, and also for measuring power in combination with the current meter
+- Current meter - used to measure max, average, and idle current consumption, and to measure power in combination with the voltage meter
+- Oscilloscope - for watching the rising/falling edge of critical signals
+- Thermometer - measures temperature on the DUT package under idle load and while running
+- Controlled DC power supply - used to switch the test board on and off in a controlled way
+
+And lastly, the Host PC - It is connected to the PCB and all test equipment using serial connections, and controls them using a Python environment.
+### Setup Diagram
+
+![](setup_schematic.svg)
+The PC uses the UART connection on the board to communicate with the different components on the board. The UART Controller connected to the UART Bus decodes the messages sent from the host PC and routes them accordingly using a simple demultiplexer.
 ### Step Zero: Generate test pattern
 ***(TBD)***
 ### Step One: Preparing the Setup
