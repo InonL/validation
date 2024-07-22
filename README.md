@@ -1,7 +1,7 @@
 # Test Setup
-This document describes an automated validation test setup for a generic chip with an embedded processor in it. The test involves sending a routine (or test pattern) to the DUT using a host PC, running the test on the DUT in real time while measuring performance, reading the results back from the DUT, and finally parsing and analyzing the results. 
+This document describes an automated validation test setup for a generic chip (the DUT) with an embedded processor in it. The test involves sending a routine (or test pattern) to the DUT using a host PC, running the test on the DUT in real time while measuring performance, reading the results back from the DUT, and finally parsing and analyzing the results. 
 
-The chip is connected to a PCB which provides all necessary inputs to the DUT:
+The chip is connected to a PCB which provides all the necessary I/O:
 - Voltage 
 - Clock input
 - Power-on reset
@@ -9,8 +9,8 @@ The chip is connected to a PCB which provides all necessary inputs to the DUT:
 - Peripheral EEPROM (connected via SPI) to load the test instructions (as the chip doesn't have internal memory)
 
 In addition, the following test equipment is used:
-- Voltage meter - to watch for voltage spikes or changes which can affect the chip's performance, and also for measuring power in combination with the current meter
-- Current meter - used to measure max, average, and idle current consumption, and to measure power in combination with the voltage meter
+- Voltage meter - to watch the DUT supply line for voltage spikes or changes which can affect the chip's performance, and also for measuring DUT power in combination with the current meter
+- Current meter - used to measure max, average, and idle current consumption of the DUT, and to measure DUT power in combination with the voltage meter
 - Oscilloscope - for watching the rising/falling edge of critical signals
 - Thermometer - measures temperature on the DUT package under idle load and while running
 - Controlled DC power supply - used to switch the test board on and off in a controlled way
@@ -19,9 +19,30 @@ And lastly, the Host PC - It is connected to the PCB and all test equipment usin
 ### Setup Diagram
 
 ![](setup_schematic.svg)
-The PC uses the UART connection on the board to communicate with the different components on the board. The UART Controller connected to the UART Bus decodes the messages sent from the host PC and routes them accordingly using a simple demultiplexer.
+The PC uses the UART connection on the board to communicate with the different components on the board. The UART Controller connected to the UART Bus decodes the messages sent from the host PC and routes them accordingly using a demultiplexer.
+
+### Python Test Environment
+The Host PC runs the test and controls the test equipment using a Python code environment.
+The environment includes elements such as:
+- Test pattern generator - generates random operands, and writes them as instructions for loading onto the EEPROM 
+- SerialDevice class - base class for all serial devices
+- Specific device classes - every device connected via serial has it's own unique class, which inherits from the SerialDevice base class. Every device class implements methods in a way compatible with the device, such as: Transmit/Receive methods, 
+
+The test procedure control flow is as follows:
+![](control_flow.svg)
+
+The following section attempts to outline the test procedure using multiple steps.
 ### Step Zero: Generate test pattern
-***(TBD)***
+Before starting the test procedure, a test pattern needs to be provided in the form of a series of instructions for the DUT embedded processor. Different processor instructions need to be tested - ALU operations (i.e ADD, AND, or XOR), memory operations (loading/storing data), and so on.
+There are many ways to generate instructions operands - For this test I will focus only on random operands for simplicity.
+
+To generate a random operand, the following function will be used:
+~~~py
+def gen_rand_operands(min, max):
+	return random.randint(min, max), random.randint(min, max)
+~~~
+The function takes minimum and maximum operand values as arguments, and returns a tuple of two operands for the instruction.
+
 ### Step One: Preparing the Setup
 This phase involves connecting all the necessary equipment in order for the test to commence, such as:
 - Connecting test equipment to the host PC, for example: Controlled DC Power Supply, Voltage/Current/Power meters, Oscilloscope, Thermometer, etc.
