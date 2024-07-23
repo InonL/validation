@@ -28,52 +28,52 @@ The environment includes elements such as:
 - Specific serial device classes - every unique device class inherits from the base SerialDevice class, and implements device-specific methods. For example - The power supply class will implement a method to set voltage/current values, the Oscilloscope class will implement methods to set trigger values, and so on
 - TestBoard class - also inherits from SerialDevice, but this class is unique because it's used to communicate with several different components on the test board. It should have the following methods:
 	- Component select - When calling this method, the UART controller on the board changes the selection lines on the demultiplexer according to the desired component
-	- JTAG debugging methods - methods used to communicate with DUT via JTAG, including a method to encode JTAG instructions in UART messages, parse JTAG messages received from DUT, and save them to a file in-order
+	- JTAG debugging methods - methods used to communicate with DUT via JTAG, including methods to encode and decode JTAG instructions in UART messages
 	- SPI methods - similar to the JTAG methods, a method is needed to encode UART messages to SPI messages compatible with the EEPROM
 	- Power-on Reset - a method to toggle the power-on reset component
+- Result parser and collector - Needs to be able to parse the JTAG debug messages, collect them, and order them correctly in a file which can later be used for statistical analysis and graph plotting
 
-The test procedure control flow is as follows:
+### Test Procedure Control flow
 ![](control_flow.svg)
+##### Collecting data from DUT
+The processor will communicate the results via the JTAG debug connection back to the host PC. Some ways that this can be done:
+- Sending info during runtime after every instruction is done - the processor will send debug info at runtime for every instruction via JTAG, for example: Program counter values, register values before and after the instruction, data memory values, etc. This might be hard to perform due to timing issues and data rate limitations on the JTAG and/or UART busses
+- Dumping the registers and data memory after all instructions have been completed - this means the generated test patterns will all be finished and their results will be saved into memory. It is harder to measure single instruction execution time in this method, but easier to parse
 
-The following section attempts to outline the test procedure using multiple steps.
-### Step Zero: Generate test pattern
-Before starting the test procedure, a test pattern needs to be provided in the form of a series of instructions for the DUT embedded processor. Different processor instructions need to be tested - ALU operations (i.e ADD, AND, or XOR), memory operations (loading/storing data), and so on.
-There are many ways to generate instructions operands - For this test I will focus only on random operands for simplicity.
+Further elaboration on the test procedure can be found on the 'procedure.md' file.
+### Parsing the results
+After receiving the test results from the DUT, they will be parsed and collected in a clear way which allows statistical analysis and plotting graphs.
+The test environment will have a way to save the results into a convenient file format (I.e csv, xls, etc.). Every row will include several columns relevant to the results - program counter value, the instruction operation, input registers and their values, output registers and their values, their reference values (created at the beginning), and comparison results. For example:
 
-To generate a random operand, the following function will be used:
-~~~py
-def gen_rand_operands(min, max):
-	return random.randint(min, max), random.randint(min, max)
-~~~
-The function takes minimum and maximum operand values as arguments, and returns a tuple of two operands for the instruction.
+| PC         | operation | reg 1 | reg 1 value | reg 2 | reg 2 value | output reg | output value | reference  | PASS/FAIL |
+| ---------- | --------- | ----- | ----------- | ----- | ----------- | ---------- | ------------ | ---------- | --------- |
+| 0x00000000 | ADD       | 1     | 0x00000006  | 2     | 0x00000005  | 3          | 0x0000000b   | 0x0000000b | PASS      |
+| ...        | ...       | ...   | ...         | ...   | ...         | ...        | ...          | ...        | ...       |
 
-### Step One: Preparing the Setup
-This phase involves connecting all the necessary equipment in order for the test to commence, such as:
-- Connecting test equipment to the host PC, for example: Controlled DC Power Supply, Voltage/Current/Power meters, Oscilloscope, Thermometer, etc.
-- Connecting all relevant connections to the Test PCB: DC Power, Voltage/Current/Power probes, Thermocouple on the DUT, etc.
-- Preparing the host PC - Executing software, checking all equipment is connected and communicating properly
+Performance measurements files will also be generated using the info collected from the test equipment. For example, a timing measurements file:
 
-We initialize the serial communication channels for each piece of test equipment by creating a Device class for each one, like this:
-~~~py
-power_supply = Device(COM2, 115200)
-~~~
-### Step Two: Powerup of the Test PCB
-We can powerup the test board using a **controlled DC Power Supply**. Several things that can happen in this phase are:
-- Power-On-Reset applied to the DUT, it does not try to boot yet
-- EEPROM set to write mode, PC serial interface routed to it
-- Taking turn-on power measurements (power that DUT consumes during powerup)
-- Taking reference idle power measurements
-- Taking reference temperature measurements
-### Step Three: Send the pattern to the DUT
-Send the pattern to the DUT so it performs the procedure we want to test. We will do this by loading a peripheral EEPROM with the instructions and ***(data/registers)*** that represent the pattern. On boot, the EEPROM will connect to the DUT and send it the instructions ***(via JTAG for example).*** When the ***(JTAG)*** operations are all complete, we will know the DUT can boot properly.
-***(In this phase, the system clock is connected to the EEPROM for sync, and to the DUT TCK line, while it is in JTAG debug mode.)***
+| PC         | clock frequency \[Hz] | execution time \[nsec] | clock cycles |
+| ---------- | --------------------- | ---------------------- | ------------ |
+| 0x00000000 | 10^9                  | 3                      | 3            |
+| ...        | ...                   | ...                    | ...          |
+An electrical measurements file:
 
-So, let's recap:
-1. Decide on the test pattern and convert it to instructions ***(and data/registers)*** for the DUT
-2. Connect to the peripheral EEPROM and send it the instructions ***(via some method)***
-3. Connect the EEPROM to DUT ***(probably via JTAG)***
-4. Send the EEPROM contents to the DUT
-5. When the send is successful, we can power up and boot the DUT
+| PC         | avg V<sub>DD</sub> \[V] | V<sub>DD</sub> variance \[V] | avg current \[mA] | current variance \[mA] | avg power (W) |
+| ---------- | ----------------------- | ---------------------------- | ----------------- | ---------------------- | ------------- |
+| 0x00000000 | 1.3                     | 0.1                          | 7500              | 500                    | 9.75          |
+| ...        | ...                     | ...                          | ...               | ...                    | ...           |
 
-### Step Four: Run the DUT until it completes all instructions
-Now, the DUT is ready to run the test. We connect the system clock to the DUT clock line, and ***(reset or run?)*** the DUT. It's memory is now loaded, and so after we wait a known number of clock cycles, ideally, a 'Done' line from the DUT should rise and now we know the test pattern completed. 
+And a temperature measurements file (NOT FINAL):
+
+| PC         | start temp \[<sup>o</sup>C] | end temp \[<sup>o</sup>C] | avg temp \[<sup>o</sup>C] |
+| ---------- | --------------------------- | ------------------------- | ------------------------- |
+| 0x00000000 |                             |                           |                           |
+| ...        | ...                         | ...                       | ...                       |
+
+Now after the results are ordered in files, we can use them to pinpoint errors in the test, such as:
+- Functional errors - we can now see when the test result does not match the expected (reference) one. Several errors of the same type might indicate a design or manufacturing flaw
+- Timing errors - if an instruction executed too fast/slow, we can investigate the cause by looking at the results and other measurements to determine the cause
+- Electrical faults - acute changes in voltage/current/power can explain functional and/or timing errors
+- Thermal errors - if the package temperatures are too high, the DUT might lower its frequency, operating voltage, etc. This can explain timing errors and high voltage/current/power fluctuations
+
+With these files we can now use Python libraries such as `numpy` and `matplotlib` to perform statistical analysis of the results and plot graphs.
