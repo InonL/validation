@@ -4,25 +4,25 @@ This document describes an automated validation test setup for a chip (the DUT) 
 The chip is connected to a PCB which provides all the necessary I/O:
 - Voltage 
 - Clock input
-- Power-on reset (held low at powerup to delay boot until explicit instruction)
+- Power-on reset (held low at power-up to delay boot until explicit instruction)
 - Serial interface
-- Peripheral EEPROM (connected via SPI) to load the test instructions (as the chip doesn't have internal memory)
+- Peripheral EEPROM (connected via SPI) to load the test instructions (since the chip doesn't have internal memory)
 
 In addition, the following test equipment is used:
-- Voltage meter - to watch the DUT supply line for voltage spikes or changes which can affect the chip's performance, and also for measuring DUT power in combination with the current meter
-- Current meter - used to measure max, average, and idle current consumption of the DUT, and to measure DUT power in combination with the voltage meter
-- Oscilloscope - for watching the rising/falling edge of critical signals
-- Thermometer - measures temperature on the DUT package under idle load and while running
+- Voltage meter - used to monitor the DUT supply line for voltage spikes or changes which can affect the chip's performance, and also for measuring DUT power in combination with the current meter
+- Current meter - used to measure max, average, and idle current consumption of the DUT, and to measure DUT power together with the voltage meter
+- Oscilloscope - for monitoring the rising or falling edges of critical signals
+- Thermometer - measures temperature on the DUT package when idle and during operation
 - Controlled DC power supply - used to switch the test board on and off in a controlled way
 
-The test setup is managed by a host PC - It communicates with the PCB and all test equipment using serial connections, and controls them using a Python environment that runs the test procedure.
+The test setup is managed by a host PC. It communicates with the PCB and all test equipment using serial connections and controls them with a Python environment that runs the test procedure.
 ### Setup Diagram
 
 ![](setup_schematic.svg)
 The PC uses serial connections to communicate with the test equipment and the test PCB. The UART connection on the PCB is connected to a UART Controller on the board, which decodes the messages sent from the host PC and routes them to different components on the board using a demultiplexer.
 ### Python Test Environment
-The Host PC runs the test and controls the test equipment using a Python code environment.
-The environment includes elements such as:
+The Host PC runs the test and controls the test equipment with a Python environment.
+The environment includes the following elements:
 - Test pattern generator - generates random operands, converts them to binary instructions for loading onto the EEPROM, and stores them in a file. It also generates reference results to compare with the actual test results
 - SerialDevice class - base class for all serial devices, which takes serial connection parameters such as baud rate, COM port, etc.
 - Specific serial device classes - every unique device class inherits from the base SerialDevice class, and implements device-specific methods. For example - The power supply class will implement a method to set voltage/current values, the Oscilloscope class will implement methods to set trigger values, etc.
@@ -86,4 +86,4 @@ Now after the results are ordered in files, they can be used to pinpoint errors 
 - Electrical faults - acute changes in voltage/current/power can explain functional and/or timing errors
 - Thermal errors - if the package temperatures are too high, the DUT might lower its frequency, operating voltage, etc. This can explain timing errors and high voltage/current/power fluctuations
 
-With these files, Python libraries such as `numpy` and `matplotlib` can be used to perform statistical analysis of the results and plot graphs.
+Using these files, Python libraries such as `numpy` and `matplotlib` can perform statistical analysis of the results and plot graphs.
