@@ -10,8 +10,8 @@ It seems probable that certain instructions' execution time needs to be checked 
 #### In general - load each instruction individually and gauge performance during runtime, or load whole patterns and evaluate them post run?
 It's not clear to me what should be the correct way to do this. I can load lots of instructions to an EEPROM, make it send them to the DUT, let it run, and then analyze the results. On the other hand, I can send each instruction individually and then analyze them while other instructions are still running (using the EEPROM as a sort of buffer, or not at all and send directly to the DUT via communication channel).
 
-#### What to focus on - Physical validation or functional?
-I am not sure if I should include physical measurements such as power, temperature, execution time, etc.
+#### ~~What to focus on - Physical validation or functional?~~
+~~I am not sure if I should include physical measurements such as power, temperature, execution time, etc.~~
 
 #### How involved should I be in the boot sequence?
 The RP2040 for example uses a boot loop which defaults to USB boot if not supplied with an XIP peripheral... How is this handled here?
