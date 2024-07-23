@@ -4,7 +4,7 @@ This document describes an automated validation test setup for a generic chip (t
 The chip is connected to a PCB which provides all the necessary I/O:
 - Voltage 
 - Clock input
-- Power-on reset
+- Power-on reset (held low at powerup to delay boot until explicit instruction)
 - Serial interface
 - Peripheral EEPROM (connected via SPI) to load the test instructions (as the chip doesn't have internal memory)
 
@@ -35,6 +35,7 @@ The environment includes elements such as:
 
 ### Test Procedure Control flow
 ![](control_flow.svg)
+Further elaboration on the test procedure is in the procedure.md file.
 ##### Collecting data from DUT
 The processor will communicate the results via the JTAG debug connection back to the host PC. Some ways that this can be done:
 - Sending info during runtime after every instruction is done - the processor will send debug info at runtime for every instruction via JTAG, for example: Program counter values, register values before and after the instruction, data memory values, etc. This might be hard to perform due to timing issues and data rate limitations on the JTAG and/or UART busses
@@ -56,6 +57,7 @@ Performance measurements files will also be generated using the info collected f
 | ---------- | --------------------- | ---------------------- | ------------ |
 | 0x00000000 | 10^9                  | 3                      | 3            |
 | ...        | ...                   | ...                    | ...          |
+
 An electrical measurements file:
 
 | PC         | avg V<sub>DD</sub> \[V] | V<sub>DD</sub> variance \[V] | avg current \[mA] | current variance \[mA] | avg power (W) |
@@ -71,7 +73,7 @@ And a temperature measurements file (NOT FINAL):
 | ...        | ...                         | ...                       | ...                       |
 
 Now after the results are ordered in files, we can use them to pinpoint errors in the test, such as:
-- Functional errors - we can now see when the test result does not match the expected (reference) one. Several errors of the same type might indicate a design or manufacturing flaw
+- Functional errors - we can now see when the test result does not match the expected (reference) one. Several errors of the same operation or with the same result might indicate a design or manufacturing flaw
 - Timing errors - if an instruction executed too fast/slow, we can investigate the cause by looking at the results and other measurements to determine the cause
 - Electrical faults - acute changes in voltage/current/power can explain functional and/or timing errors
 - Thermal errors - if the package temperatures are too high, the DUT might lower its frequency, operating voltage, etc. This can explain timing errors and high voltage/current/power fluctuations
